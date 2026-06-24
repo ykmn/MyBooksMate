@@ -20,7 +20,7 @@ class YandexBooksStore(StoreBase):
                    '(через Bookmate) прямо в библиотеку Calibre.')
     supported_platforms = ['windows', 'osx', 'linux']
     author = 'My Books Mate'
-    version = (1, 0, 7)
+    version = (1, 0, 1)
     minimum_calibre_version = (5, 0, 0)
     type = _('Store')
 
