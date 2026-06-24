@@ -1,0 +1,49 @@
+#!/bin/bash
+# Bootstrap launcher for My Books Mate on macOS (Apple Silicon).
+#
+# MyBooksMate.app is fully self-contained — it can be moved to /Applications
+# (or anywhere else) on its own, with no sibling files required: requirements.txt
+# and the runtime window icon ship inside Contents/Resources, and all writable
+# data (config.ini, token.txt, webengine_profile, the venv itself) lives in
+# ~/Library/Application Support/MyBooksMate instead of next to the bundle, so
+# it survives app updates/reinstalls and never needs write access to /Applications.
+#
+# A prebuilt Python virtual environment can't be shipped cross-platform from
+# the Windows machine this release was built on (PySide6/QtWebEngine wheels
+# are platform-specific binaries). Instead, on first run this script creates
+# a native arm64 venv using the Mac's own python3 and installs the pinned
+# dependencies from requirements.txt — then launches the app the same way on
+# every subsequent run.
+set -e
+
+RESOURCES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../Resources" && pwd)"
+APP_SUPPORT_DIR="$HOME/Library/Application Support/MyBooksMate"
+mkdir -p "$APP_SUPPORT_DIR"
+
+VENV_DIR="$APP_SUPPORT_DIR/.venv"
+PYTHON_BIN="$VENV_DIR/bin/python3"
+
+show_error() {
+    osascript -e "display dialog \"$1\" with title \"My Books Mate\" buttons {\"OK\"} with icon stop" >/dev/null 2>&1 || echo "$1" >&2
+}
+
+if ! command -v python3 >/dev/null 2>&1; then
+    show_error "Не найден python3. Установите Python 3.10+ для Apple Silicon (например, с python.org) и запустите приложение снова."
+    exit 1
+fi
+
+if [ ! -x "$PYTHON_BIN" ]; then
+    python3 -m venv "$VENV_DIR"
+fi
+
+REQUIREMENTS="$RESOURCES_DIR/requirements.txt"
+MARKER="$VENV_DIR/.requirements_installed"
+if [ ! -f "$MARKER" ] || [ "$REQUIREMENTS" -nt "$MARKER" ]; then
+    "$PYTHON_BIN" -m pip install --upgrade pip --quiet
+    "$PYTHON_BIN" -m pip install -r "$REQUIREMENTS" --quiet
+    touch "$MARKER"
+fi
+
+export MYBOOKSMATE_APP_DIR="$APP_SUPPORT_DIR"
+cd "$RESOURCES_DIR"
+exec "$PYTHON_BIN" -m mybooksmate.main

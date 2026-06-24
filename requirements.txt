@@ -1,0 +1,8 @@
+httpx[http2]
+pillow
+pywebview
+pywebview[qt]; sys_platform == 'linux' or sys_platform == 'darwin'
+reportlab
+ebooklib
+BeautifulSoup4
+PySide6

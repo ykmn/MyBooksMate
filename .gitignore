@@ -1,0 +1,14 @@
+mybooks/
+tmp/
+buks/
+token.txt
+get_all_uuid.py
+build_tmp/
+*.spec
+__pycache__/
+config.ini
+.venv/
+webengine_profile/
+test_book2.epub
+release-Win/python-embed/Lib/site-packages/
+release-Win/python-embed/.requirements_installed
