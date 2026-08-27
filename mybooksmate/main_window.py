@@ -8,6 +8,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -25,6 +26,7 @@ from PySide6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from . import auth, downloader, worker
+from .book_selection_dialog import BookSelectionDialog
 from .config import AppConfig
 from .settings_dialog import SettingsDialog
 from .version import __version__
@@ -51,6 +53,9 @@ RESOURCE_LABELS = {
 }
 
 URL_PATTERN = re.compile(r"/(books|audiobooks|comicbooks|serial|series)/([^/?#]+)")
+AUTHOR_BOOKS_PATTERN = re.compile(r"^/authors/[^/]+/author/books/?$")
+SECTION_PATTERN = re.compile(r"^/section/[^/]+/[^/?#]+/?$")
+SERIES_LIST_PATTERN = re.compile(r"^/series/([^/?#]+)")
 
 NAV_BUTTON_STYLE = """
 QToolButton {
@@ -190,6 +195,11 @@ class MainWindow(QMainWindow):
         self.download_calibre_button.clicked.connect(lambda: self._download(add_to_calibre=True))
         layout.addWidget(self.download_calibre_button)
 
+        self.select_books_button = QPushButton("Выбрать книги...")
+        self.select_books_button.clicked.connect(self._start_bulk_selection)
+        self.select_books_button.setVisible(False)
+        layout.addWidget(self.select_books_button)
+
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
@@ -211,7 +221,14 @@ class MainWindow(QMainWindow):
         return panel
 
     def _on_url_changed(self, url: QUrl):
-        match = URL_PATTERN.search(url.path())
+        path = url.path()
+        self.select_books_button.setVisible(bool(
+            AUTHOR_BOOKS_PATTERN.match(path)
+            or SECTION_PATTERN.match(path)
+            or SERIES_LIST_PATTERN.match(path)
+        ))
+
+        match = URL_PATTERN.search(path)
         if not match:
             # Page no longer matches a known book/audiobook/comicbook/series URL —
             # clear the stale ID so a download can't target the wrong book.
@@ -338,3 +355,83 @@ class MainWindow(QMainWindow):
         self.download_calibre_button.setEnabled(True)
         self.status_label.setText(f"Ошибка: {message}")
         QMessageBox.critical(self, "My Books Mate", message)
+
+    def _start_bulk_selection(self):
+        dialog = BookSelectionDialog(self.browser, RESOURCE_LABELS, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._run_bulk_queue(dialog.selected_items(), dialog.add_to_calibre())
+
+    def _run_bulk_queue(self, selected, add_to_calibre):
+        token = auth.get_auth_token(self.app_dir, self.profile, self)
+        if not token:
+            QMessageBox.warning(self, "My Books Mate", "Нужна авторизация в Bookmate.")
+            return
+
+        self._bulk_token = token
+        self._bulk_add_to_calibre = add_to_calibre
+        self._bulk_queue = list(selected)
+        self._bulk_total = len(selected)
+        self._bulk_stats = {"downloaded": 0, "skipped": 0, "failed": 0}
+        self.download_button.setEnabled(False)
+        self.download_calibre_button.setEnabled(False)
+        self.select_books_button.setEnabled(False)
+        self._bulk_download_next()
+
+    def _bulk_download_next(self):
+        if not self._bulk_queue:
+            self.download_button.setEnabled(True)
+            self.download_calibre_button.setEnabled(True)
+            self.select_books_button.setEnabled(True)
+            stats = self._bulk_stats
+            self.status_label.setText(
+                "Массовое скачивание завершено: "
+                f"скачано {stats['downloaded']}, "
+                f"пропущено {stats['skipped']}, "
+                f"ошибок {stats['failed']}"
+            )
+            return
+
+        item = self._bulk_queue.pop(0)
+        resource_type = item["resource_type"]
+        uuid = item["uuid"]
+        title = item["title"]
+        current_number = self._bulk_total - len(self._bulk_queue)
+
+        try:
+            existing_path = downloader.find_existing_file(
+                resource_type, uuid, self.config.download_folder, self._bulk_token
+            )
+        except Exception:  # noqa: BLE001
+            existing_path = None
+
+        if existing_path:
+            self._bulk_stats["skipped"] += 1
+            self._bulk_download_next()
+            return
+
+        os.makedirs(self.config.download_folder, exist_ok=True)
+        self.status_label.setText(f"Скачивание {current_number} из {self._bulk_total}: {title}")
+        item_add_to_calibre = self._bulk_add_to_calibre and resource_type in CALIBRE_COMPATIBLE
+
+        worker.start_download(
+            self,
+            resource_type,
+            uuid,
+            self.config.download_folder,
+            self._bulk_token,
+            self.config.max_bitrate,
+            item_add_to_calibre,
+            self.config.calibre_path,
+            self._on_bulk_item_finished,
+            self._on_bulk_item_failed,
+            False,
+            self.config.convert_to_fb2,
+        )
+
+    def _on_bulk_item_finished(self, path, already_downloaded, calibre_message):
+        self._bulk_stats["downloaded"] += 1
+        self._bulk_download_next()
+
+    def _on_bulk_item_failed(self, message):
+        self._bulk_stats["failed"] += 1
+        self._bulk_download_next()
