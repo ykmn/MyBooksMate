@@ -3,8 +3,10 @@ import platform
 import re
 import subprocess
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QUrl, Qt
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFrame,
     QHBoxLayout,
@@ -88,6 +90,8 @@ class MainWindow(QMainWindow):
         self.browser.setPage(QWebEnginePage(self.profile, self.browser))
         self.browser.load(QUrl(START_URL))
         self.browser.urlChanged.connect(self._on_url_changed)
+        self.browser.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.browser.customContextMenuRequested.connect(self._show_browser_context_menu)
 
         self.browser_container = self._build_browser_container()
         self.panel = self._build_download_panel()
@@ -220,6 +224,17 @@ class MainWindow(QMainWindow):
         if index >= 0:
             self.type_combo.setCurrentIndex(index)
         self.uuid_edit.setText(resource_id)
+
+    def _show_browser_context_menu(self, pos):
+        menu = self.browser.page().createStandardContextMenu()
+        menu.addSeparator()
+        copy_link_action = QAction("Копировать ссылку на страницу", menu)
+        copy_link_action.triggered.connect(self._copy_page_link)
+        menu.addAction(copy_link_action)
+        menu.exec(self.browser.mapToGlobal(pos))
+
+    def _copy_page_link(self):
+        QApplication.clipboard().setText(self.browser.url().toString())
 
     def _open_settings(self):
         SettingsDialog(self.config, self).exec()
