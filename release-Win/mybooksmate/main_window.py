@@ -49,6 +49,26 @@ RESOURCE_LABELS = {
 
 URL_PATTERN = re.compile(r"/(books|audiobooks|comicbooks|serial|series)/([^/?#]+)")
 
+NAV_BUTTON_STYLE = """
+QToolButton {
+    background-color: #2f7ff2;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: bold;
+    min-width: 44px;
+    min-height: 36px;
+    border: none;
+    border-radius: 6px;
+    padding: 2px;
+}
+QToolButton:hover {
+    background-color: #1f6fe0;
+}
+QToolButton:pressed {
+    background-color: #175bc0;
+}
+"""
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -110,24 +130,28 @@ class MainWindow(QMainWindow):
         back_button = QToolButton()
         back_button.setText("←")
         back_button.setToolTip("Назад")
+        back_button.setStyleSheet(NAV_BUTTON_STYLE)
         back_button.clicked.connect(self.browser.back)
         nav_bar.addWidget(back_button)
 
         forward_button = QToolButton()
         forward_button.setText("→")
         forward_button.setToolTip("Вперёд")
+        forward_button.setStyleSheet(NAV_BUTTON_STYLE)
         forward_button.clicked.connect(self.browser.forward)
         nav_bar.addWidget(forward_button)
 
         reload_button = QToolButton()
         reload_button.setText("⟲")
         reload_button.setToolTip("Обновить")
+        reload_button.setStyleSheet(NAV_BUTTON_STYLE)
         reload_button.clicked.connect(self.browser.reload)
         nav_bar.addWidget(reload_button)
 
         home_button = QToolButton()
         home_button.setText("⌂")
         home_button.setToolTip("На главную (books.yandex.ru)")
+        home_button.setStyleSheet(NAV_BUTTON_STYLE)
         home_button.clicked.connect(lambda: self.browser.setUrl(QUrl(START_URL)))
         nav_bar.addWidget(home_button)
 
