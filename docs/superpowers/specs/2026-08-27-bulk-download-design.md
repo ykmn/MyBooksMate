@@ -104,14 +104,34 @@ class PageScraper:
 Новый файл `mybooksmate/book_selection_dialog.py`, класс
 `BookSelectionDialog(QDialog)`.
 
+**Диалог владеет сборщиком и запускает сбор сам, сразу при создании** — это
+разрешает исходную неоднозначность между «кнопка блокируется, пока идёт сбор»
+и «диалог показывает прогресс сбора»: `MainWindow` просто создаёт
+`BookSelectionDialog(self.browser, RESOURCE_LABELS, self)` и сразу вызывает
+`exec()`; сам диалог в `__init__` создаёт `PageScraper` и запускает
+`collect(...)` — колбэки таймера/JS начинают срабатывать, как только
+`exec()` запускает вложенный event loop. `MainWindow` не должен сам ждать
+результата сбора или отдельно блокировать кнопку «Выбрать книги...» на
+время сбора — модальность диалога уже блокирует остальной интерфейс.
+
 - Заголовок «Выбор книг для скачивания», модальный.
 - Пока список ещё собирается (пока `PageScraper.collect` не вызвал
   колбэк) — виден `QLabel` со статусом («Загрузка списка книг… найдено N»,
-  где N обновляется по мере тиков сборщика) и `QProgressBar` в
-  неопределённом режиме (`setRange(0, 0)`); кнопки скачивания неактивны.
+  где N обновляется по мере тиков сборщика через колбэк `on_progress`) и
+  `QProgressBar` в неопределённом режиме (`setRange(0, 0)`); кнопки
+  скачивания неактивны.
+- Если сбор закончился пустым списком — статус меняется на «Не удалось
+  найти книги на странице.», список остаётся пустым, кнопка «Скачать
+  выбранное» остаётся неактивной (доступна только «Отмена»).
+- При закрытии диалога через «Отмена» (`reject()`) — сборщик обязан
+  остановиться (`PageScraper.stop()`), чтобы отложенные колбэки JS/таймера
+  не сработали на уже уничтоженных виджетах.
 - После завершения сбора — `QListWidget`, где каждый пункт — чекбокс с
-  текстом `"{RESOURCE_LABELS[resource_type]} — {title}"` (переиспользуется
-  словарь `RESOURCE_LABELS` из `main_window.py`).
+  текстом `"{label} — {title}"`. Словарь меток передаётся диалогу через
+  конструктор (`BookSelectionDialog(browser, resource_labels, parent)`),
+  а не импортируется из `main_window.py` напрямую — это исключает
+  циклический импорт (`main_window.py` импортирует `BookSelectionDialog`),
+  и `MainWindow` передаёт свой уже существующий словарь `RESOURCE_LABELS`.
 - Кнопки **«Выбрать всё»** / **«Снять выбор»** — массово выставляют/снимают
   `Qt.CheckState.Checked`/`Unchecked` на все пункты списка.
 - Чекбокс **«Добавить в Calibre»** (`self.calibre_checkbox`), выключен по
@@ -131,16 +151,14 @@ class PageScraper:
 
 - `self.select_books_button.clicked.connect(self._start_bulk_selection)`.
 - `_start_bulk_selection()`:
-  1. блокирует кнопку, выставляет `status_label` в «Загрузка списка книг…»;
-  2. создаёт `PageScraper(self.browser)` и вызывает
-     `collect(on_done=self._on_books_collected)`.
-- `_on_books_collected(items)`:
-  - разблокирует кнопку;
-  - если `items` пуст — `QMessageBox.warning` («Не удалось найти книги на
-    странице») и выход;
-  - иначе создаёт `BookSelectionDialog(items, self)` и вызывает `exec()`;
-    если результат `Accepted` — забирает `selected_items()`/`add_to_calibre()`
-    и вызывает `_run_bulk_queue(...)`.
+  1. создаёт `BookSelectionDialog(self.browser, RESOURCE_LABELS, self)`;
+  2. вызывает `dialog.exec()`; если результат
+     `QDialog.DialogCode.Accepted` — забирает `dialog.selected_items()` и
+     `dialog.add_to_calibre()` и вызывает `_run_bulk_queue(...)`.
+  Пустой список после сбора (см. Раздел 3) обрабатывается самим диалогом —
+  в этом случае кнопка «Скачать выбранное» просто остаётся недоступной, и
+  пользователь закрывает диалог через «Отмена» (`exec()` вернёт `Rejected`,
+  `_run_bulk_queue` не вызывается).
 - `_run_bulk_queue(selected, add_to_calibre)`:
   - запрашивает токен один раз (`auth.get_auth_token`, как в одиночном
     скачивании); при отсутствии токена — предупреждение и выход, очередь не
