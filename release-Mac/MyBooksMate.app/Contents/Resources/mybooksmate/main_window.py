@@ -362,6 +362,10 @@ class MainWindow(QMainWindow):
             self._run_bulk_queue(dialog.selected_items(), dialog.add_to_calibre())
 
     def _run_bulk_queue(self, selected, add_to_calibre):
+        if add_to_calibre and not self.config.calibre_path:
+            QMessageBox.warning(self, "My Books Mate", "Укажите путь к Calibre в настройках.")
+            return
+
         token = auth.get_auth_token(self.app_dir, self.profile, self)
         if not token:
             QMessageBox.warning(self, "My Books Mate", "Нужна авторизация в Bookmate.")
