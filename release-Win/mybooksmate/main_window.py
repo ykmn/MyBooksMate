@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSplitter,
@@ -226,7 +227,21 @@ class MainWindow(QMainWindow):
         self.uuid_edit.setText(resource_id)
 
     def _show_browser_context_menu(self, pos):
-        menu = self.browser.page().createStandardContextMenu()
+        page = self.browser.page()
+        menu = QMenu(self.browser)
+        standard_actions = (
+            QWebEnginePage.WebAction.Back,
+            QWebEnginePage.WebAction.Forward,
+            QWebEnginePage.WebAction.Reload,
+            QWebEnginePage.WebAction.Copy,
+            QWebEnginePage.WebAction.Paste,
+            QWebEnginePage.WebAction.SelectAll,
+            QWebEnginePage.WebAction.ViewSource,
+        )
+        for web_action in standard_actions:
+            action = page.action(web_action)
+            if action.isEnabled():
+                menu.addAction(action)
         menu.addSeparator()
         copy_link_action = QAction("Копировать ссылку на страницу", menu)
         copy_link_action.triggered.connect(self._copy_page_link)
