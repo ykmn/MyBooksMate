@@ -1,5 +1,10 @@
 # История разработки
 
+## 2026-08-27 — Крупные кнопки навигации браузера + "Копировать ссылку на страницу" (mybooksmate v1.0.003)
+- Кнопки навигации браузера (←, →, ⟲, ⌂) в `main_window.py` увеличены и получили единый акцентный цвет фона с контрастным текстом (`NAV_BUTTON_STYLE`), вместо мелких однотонных `QToolButton` без стиля.
+- В контекстное меню встроенного браузера добавлен пункт "Копировать ссылку на страницу" (в конец, после стандартных пунктов Chromium) — копирует текущий URL страницы в буфер обмена.
+- Версия `mybooksmate` увеличена до `1.0.003`.
+
 ## 2026-06-24 — release-Mac: самодостаточный `.app`, данные в Application Support (mybooksmate v1.0.001)
 - `release-Mac/` переработана так, чтобы `MyBooksMate.app` можно было перенести в `/Applications` сам по себе, без соседних файлов: `requirements.txt` и `favicon.icns` (иконка окна) перенесены внутрь `Contents/Resources/`, верхнеуровневые `release-Mac/requirements.txt`, `release-Mac/favicon.icns`, `release-Mac/config.ini` удалены — теперь в `release-Mac/` нет ничего кроме `MyBooksMate.app`.
 - Все изменяемые данные (`config.ini`, `token.txt`, `webengine_profile/`, сам `.venv`) переехали в `~/Library/Application Support/MyBooksMate` — переживают перенос/обновление/переустановку бандла. Bootstrap-скрипт (`Contents/MacOS/MyBooksMate`) создаёт эту папку, экспортирует `MYBOOKSMATE_APP_DIR` на неё (подхватывается `mybooksmate/config.py`'s `_app_dir()`), ставит зависимости из `Contents/Resources/requirements.txt` в venv внутри Application Support.
