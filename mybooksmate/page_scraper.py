@@ -1,3 +1,4 @@
+import json
 import time
 
 from PySide6.QtCore import QTimer
@@ -36,7 +37,7 @@ COLLECT_BOOKS_JS = """
         }
         items.push({resource_type: resourceType, uuid: uuid, title: title});
     }
-    return {items: items, count: items.length, scrollHeight: document.body.scrollHeight};
+    return JSON.stringify({items: items, count: items.length, scrollHeight: document.body.scrollHeight});
 })();
 """
 
@@ -100,10 +101,13 @@ class PageScraper:
     def _on_collected(self, result):
         if self._on_done is None:
             return
-        result = result or {}
-        items = result.get("items", [])
-        count = result.get("count", 0)
-        scroll_height = result.get("scrollHeight", 0)
+        try:
+            parsed = json.loads(result) if result else {}
+        except (TypeError, ValueError):
+            parsed = {}
+        items = parsed.get("items", [])
+        count = parsed.get("count", 0)
+        scroll_height = parsed.get("scrollHeight", 0)
         self._history.append((count, scroll_height))
 
         if self._on_progress is not None:
