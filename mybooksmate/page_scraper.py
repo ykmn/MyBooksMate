@@ -21,6 +21,7 @@ COLLECT_BOOKS_JS = """
     var anchors = document.querySelectorAll("a[href]");
     for (var i = 0; i < anchors.length; i++) {
         var anchor = anchors[i];
+        if (anchor.closest && anchor.closest("header, nav, footer")) { continue; }
         var match = pattern.exec(anchor.getAttribute("href") || "");
         if (!match) { continue; }
         var resourceType = segmentToType[match[1]];
