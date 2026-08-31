@@ -29,6 +29,12 @@ class DownloadWorker(QObject):
             if self.add_to_calibre and path:
                 calibre_message = calibre.add_to_calibre(self.calibre_path, path)
             self.finished.emit(path or "", bool(already_downloaded), calibre_message)
+        except SystemExit:
+            # RUBookmatedownloader.py's retry loop calls a bare sys.exit() after 3 failed
+            # attempts, which raises SystemExit — this isn't an Exception subclass, so it
+            # must be caught separately or it crashes the whole app instead of just failing
+            # this one download.
+            self.failed.emit("Не удалось скачать файл после нескольких попыток (ошибка сервера или сети). Проверьте ID книги или повторите позже.")
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
 
