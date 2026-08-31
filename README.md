@@ -54,7 +54,10 @@
 
 - **`release-Mac/`** — сборка для macOS (Apple Silicon), полностью самодостаточная: папка содержит только `MyBooksMate.app`, сам `.app` можно перенести в `/Applications`. Требуется Python 3.10+ на Mac.
   
-  MacOS может не запустить приложение из-за настроек безопасности, т.к. оно не подписано сертификатом разработчика. Блокировка снимается в *System Settings / Privace & Security / Security / Allow applications from AppStore & known developers / MyBooksMate: Allow* 
+  MacOS может не запустить приложение:
+  1. из-за невыставленных прав бинарник внутри архива, скачанного из репозитория. Для исправления выполните из терминала: `chmod +x /Applications/MyBooksMate.app/Contents/MacOS/MyBooksMate`
+
+  2. из-за настроек безопасности, т.к. приложение не подписано сертификатом разработчика. Блокировка снимается в *System Settings / Privace & Security / Security / Allow applications from AppStore & known developers / MyBooksMate: Allow* 
 
 ### Плагин для Calibre
 ![Screenshot MacOS](screenshot-plugin.png)
