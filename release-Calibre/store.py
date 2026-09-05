@@ -31,7 +31,7 @@ class YandexBooksStorePlugin(StorePlugin):
             result.drm = SearchResult.DRM_UNLOCKED
             yield result
 
-    def open(self, parent=None, detail_item=None, external=False):
+    def open(self, gui=None, parent=None, detail_item=None, external=False):
         from qt.core import QUrl
 
         from calibre.gui2 import open_url

@@ -1,5 +1,17 @@
 # История разработки
 
+## 2026-09-05 — Критический фикс: плагин Calibre падал при открытии книги из поиска (release-Calibre v1.0.2)
+- При клике на найденную книгу в диалоге "Get Books" — `TypeError: YandexBooksStorePlugin.open() got an unexpected keyword argument 'gui'`, скачивание/авторизация не запускались вообще.
+- Причина: текущий Calibre (проверено на 9.14) в `calibre/gui2/store/search/search.py`'s `open_store` вызывает `plugin.open(gui=self.gui, parent=self, detail_item=..., external=...)` — с именованным аргументом `gui`, которого не было в сигнатуре `YandexBooksStorePlugin.open()` в `store.py` (`def open(self, parent=None, detail_item=None, external=False)`).
+- Исправлено: сигнатура приведена к виду встроенных стор-плагинов Calibre — `def open(self, gui=None, parent=None, detail_item=None, external=False)`. Сам параметр не используется в теле метода — `self.gui` уже устанавливается базовым классом `StorePlugin` при `load_actual_plugin`, поэтому этого было достаточно.
+- Версия `release-Calibre` увеличена до `1.0.2`.
+
+## 2026-09-05 — Критический фикс: `MyBooksMate.exe` падал при запуске с `FileNotFoundError` на Tcl (mybooksmate v1.0.012)
+- После пересборки `MyBooksMate.exe` (см. фикс иконки ниже) запуск стал падать сразу при старте: `FileNotFoundError: Tcl data directory "...\_MEIxxxxxx\_tcl_data" not found`, приложение не открывалось вообще.
+- Причина: система собирается системным Python 3.14, который использует Tcl/Tk 9.0 — его библиотечные данные упакованы в zip (`libtcl9.0.4.zip`/`libtk9.0.4.zip`) и отдаются через встроенную Tcl zipfs-виртуальную файловую систему (`tkinter.Tcl().eval("info library")` возвращает `//zipfs:/lib/tcl/tcl_library`, а не реальный путь на диске). Установленный PyInstaller (6.21.0) определяет наличие Tcl/Tk-данных только через `os.path.isdir()` на этот путь — для zipfs-пути это `False`, поэтому PyInstaller молча не упаковывает ни одного файла Tcl/Tk (только warning в лог), а собранный exe остаётся без `_tcl_data`/`_tk_data`. При этом `mybooksmate/launcher.py` использовал `tkinter` только для одного экрана — прогресс-диалога "подготовка приложения" при первом запуске (установка pip/зависимостей во встроенный Python).
+- Исправлено: `tkinter` в `launcher.py` заменён на нативное Win32-окно через `ctypes` (тот же подход, что уже использовался в `_show_error` для `MessageBoxW`) — `RegisterClassW`/`CreateWindowExW` с дочерним `STATIC`-лейблом вместо `tkinter.Tk()`, ловушка `WM_CLOSE` вместо `protocol("WM_DELETE_WINDOW", ...)`. Это полностью убирает зависимость от Tcl/Tk из frozen-сборки, поэтому проблема несовместимости PyInstaller с Tcl 9 (zipfs) больше не может проявиться, независимо от версии PyInstaller.
+- Версия `mybooksmate` увеличена до `1.0.012`.
+
 ## 2026-09-05 — Фикс: сборка `MyBooksMate.exe` падала с `FileNotFoundError` на иконке
 - Команда PyInstaller из `CLAUDE.md`/README (`--icon "favicon.ico" ... --specpath ./build_tmp`) стала падать: `FileNotFoundError: Icon input file ...\build_tmp\favicon.ico not found`.
 - Причина: при генерации spec-файла "на лету" (позиционный аргумент — python-скрипт, а не `.spec`) PyInstaller выполняет сгенерированный spec с рабочей директорией `--specpath`, и автоматически переписывает путь к главному скрипту относительно этой директории (в spec видно `'..\\mybooksmate\\launcher.py'`), но **не** переписывает так же аргумент `--icon` — он остаётся ровно тем, что было передано в командной строке. В итоге относительный `favicon.ico` резолвится относительно `build_tmp/`, а не корня проекта.

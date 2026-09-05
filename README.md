@@ -46,7 +46,7 @@
   Чтобы пересобрать `MyBooksMate.exe` (например, после изменения `mybooksmate/launcher.py`):
   
   ```bash
-  python -m PyInstaller --onefile --noconsole --name "MyBooksMate" --icon "favicon.ico" --distpath ./release-Win --workpath ./build_tmp --specpath ./build_tmp mybooksmate/launcher.py
+  python -m PyInstaller --onefile --noconsole --name "MyBooksMate" --icon "$(pwd)/favicon.ico" --distpath ./release-Win --workpath ./build_tmp --specpath ./build_tmp mybooksmate/launcher.py
   ```
 
 ### MacOS arm64
