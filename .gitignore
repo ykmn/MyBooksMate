@@ -12,4 +12,3 @@ webengine_profile/
 test_book2.epub
 release-Win/python-embed/Lib/site-packages/
 release-Win/python-embed/.requirements_installed
-.DS_Store
