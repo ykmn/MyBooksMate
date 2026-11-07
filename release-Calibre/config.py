@@ -25,6 +25,7 @@ def ConfigWidget():
     class _ConfigWidget(QWidget):
         def __init__(self):
             super().__init__()
+            self.setMinimumHeight(180)
             layout = QVBoxLayout(self)
 
             self.status_label = QLabel()

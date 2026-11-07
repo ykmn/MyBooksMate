@@ -63,7 +63,7 @@
 ![Screenshot MacOS](screenshot-plugin.png)
 
 - **`release-Calibre/`** — плагин-магазин для Calibre **"Яндекс.Книги"**: поиск книг на books.yandex.ru, авторизация в Bookmate (Яндекс.Книги) и скачивание прямо в библиотеку Calibre (диалог "Получить книги").
-  Поддерживает только текстовые книги в EPUB. Войти можно в **Preferences → Plugins → Яндекс.Книги → Customize plugin → Войти в аккаунт Bookmate**; после авторизации фокус возвращается в окно настроек магазина. Кнопка **Download** и одноимённый пункт контекстного меню загружают книгу с встраиванием обложки и метаданных. Для сборки и установки см. [release-Calibre/README.md](release-Calibre/README.md).
+  Поддерживает только текстовые книги в EPUB. Войти можно в **Preferences → Plugins → Яндекс.Книги → Customize plugin → Войти в аккаунт Bookmate**. Для сборки и установки см. [release-Calibre/README.md](release-Calibre/README.md).
 
 
 ## GUI через Python:
