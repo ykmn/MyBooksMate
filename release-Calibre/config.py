@@ -30,6 +30,10 @@ def ConfigWidget():
             self.status_label = QLabel()
             layout.addWidget(self.status_label)
 
+            self.login_button = QPushButton('Войти в аккаунт Bookmate')
+            self.login_button.clicked.connect(self._login)
+            layout.addWidget(self.login_button)
+
             self.logout_button = QPushButton('Выйти из аккаунта Bookmate')
             self.logout_button.clicked.connect(self._logout)
             layout.addWidget(self.logout_button)
@@ -41,7 +45,14 @@ def ConfigWidget():
             logged_in = bool(get_token())
             status = 'выполнен вход' if logged_in else 'вход не выполнен'
             self.status_label.setText(f'Аккаунт Bookmate: {status}.')
+            self.login_button.setEnabled(not logged_in)
             self.logout_button.setEnabled(logged_in)
+
+        def _login(self):
+            from calibre_plugins.yandex_books.auth import ensure_auth_token
+
+            ensure_auth_token(self)
+            self._refresh_status()
 
         def _logout(self):
             clear_token()

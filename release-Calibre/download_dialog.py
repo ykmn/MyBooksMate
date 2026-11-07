@@ -28,14 +28,8 @@ class _DownloadThread(QThread):
             api.download_epub(self.uuid, self.token, destination)
 
             self.status.emit('Обработка обложки и метаданных...')
-            cover_bytes = api.download_cover(info.get('cover_url'))
-            book_metadata.fix_epub_cover(destination, cover_bytes)
-
-            page_metadata = book_metadata.fetch_page_metadata(self.uuid)
-            book_metadata.embed_epub_metadata(destination, page_metadata)
-            # embed_epub_metadata rewrites the whole archive — re-check the
-            # cover survived the rewrite and patch it back in if it didn't.
-            book_metadata.fix_epub_cover(destination, cover_bytes)
+            cover_bytes = api.download_cover(info.get('cover_url'), self.token)
+            book_metadata.prepare_epub(destination, self.uuid, cover_bytes)
 
             self.finished_ok.emit(destination)
         except Exception as exc:  # noqa: BLE001

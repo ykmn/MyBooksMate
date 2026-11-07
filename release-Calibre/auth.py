@@ -6,7 +6,7 @@ never from the root __init__.py, so Qt is guaranteed to be available here.
 
 import urllib.parse
 
-from qt.core import QDialog, QUrl, QVBoxLayout
+from qt.core import QDialog, QTimer, QUrl, QVBoxLayout
 from qt.webengine import QWebEnginePage, QWebEngineView
 
 from calibre_plugins.yandex_books.api import OAUTH_NETLOC, OAUTH_URL
@@ -47,6 +47,14 @@ def ensure_auth_token(parent=None):
 
     dialog = OAuthDialog(parent)
     dialog.exec_()
+    if parent is not None:
+        parent_window = parent.window()
+
+        def restore_parent_focus():
+            parent_window.raise_()
+            parent_window.activateWindow()
+
+        QTimer.singleShot(0, restore_parent_focus)
     if dialog.token:
         set_token(dialog.token)
         return dialog.token

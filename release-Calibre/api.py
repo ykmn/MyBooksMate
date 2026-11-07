@@ -23,6 +23,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 
 BASE_URL = "https://api.bookmate.yandex.net/api/v5"
 BOOKS_PAGE_URL = "https://books.yandex.ru/books/{uuid}"
@@ -454,20 +455,34 @@ def _extract_authors(authors):
 
 
 def download_epub(uuid, auth_token, destination_path, timeout=120):
-    content_url = f"{BASE_URL}/books/{uuid}/content/v4"
-    data = _fetch(content_url, auth_token, timeout, retries=3)
+    data = download_epub_data(uuid, auth_token, timeout)
     with open(destination_path, 'wb') as file:
         file.write(data)
     return destination_path
 
 
-def download_cover(cover_url, timeout=20):
+def download_epub_data(uuid, auth_token, timeout=120):
+    return _fetch(book_content_url(uuid), auth_token, timeout, retries=3)
+
+
+def book_content_url(uuid):
+    return f"{BASE_URL}/books/{uuid}/content/v4"
+
+
+def download_cover(cover_url, auth_token='', timeout=20):
     """Returns the cover image bytes, or None if cover_url is empty or the
     download fails (the caller treats a missing cover as non-fatal)."""
     if not cover_url:
         return None
     try:
-        request = urllib.request.Request(cover_url, headers={'user-agent': 'Mozilla/5.0'})
+        headers = {
+            'app-user-agent': USER_AGENT,
+            'user-agent': 'Mozilla/5.0',
+        }
+        host = urlsplit(cover_url).hostname or ''
+        if host == urlsplit(BASE_URL).hostname and auth_token:
+            headers['auth-token'] = auth_token
+        request = urllib.request.Request(cover_url, headers=headers)
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.read()
     except Exception:

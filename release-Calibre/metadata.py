@@ -140,6 +140,13 @@ def fix_epub_cover(epub_path, cover_bytes):
         pass
 
 
+def prepare_epub(epub_path, uuid, cover_bytes):
+    fix_epub_cover(epub_path, cover_bytes)
+    page_metadata = fetch_page_metadata(uuid)
+    embed_epub_metadata(epub_path, page_metadata)
+    fix_epub_cover(epub_path, cover_bytes)
+
+
 def embed_epub_metadata(epub_path, metadata):
     """Adds dc:subject (tags), dc:publisher and dc:date entries to the
     epub's OPF metadata, scraped from the book's page (see
